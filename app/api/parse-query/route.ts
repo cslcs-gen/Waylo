@@ -3,6 +3,53 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+async function fetchImage(query: string): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`,
+      { headers: { Authorization: process.env.PEXELS_API_KEY || "" } }
+    );
+    const data = await res.json();
+    return data.photos?.[0]?.src?.large || "";
+  } catch {
+    return "";
+  }
+}
+
+async function generateCategory(
+  category: string,
+  type: string,
+  destination: string,
+  country: string,
+  duration: number,
+  month: string,
+  budget: string,
+  interests: string,
+  style: string
+): Promise<Record<string, unknown>[]> {
+  try {
+    const result = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: `You are a travel guide specialising in ${category} experiences. Return ONLY a JSON object with a "cards" array containing exactly 20 unique ${category} recommendations. Every single card must be different. Each card needs: id (unique kebab-case slug), title (specific place or experience name), category (must be "${category}"), type ("${type}"), imageUrl (empty string), location (specific district or address in ${destination}), duration (realistic time e.g. "1-2 hours"), whyVisit (2 sentences tailored to this traveller), referenceUrl (https://google.com/search?q=place+name+${destination}), priceRange (Free or $ or $$ or $$$ or $$$$).`
+        },
+        {
+          role: "user",
+          content: `Generate 20 unique ${category} recommendations in ${destination}, ${country} for a ${duration}-day trip in ${month}. Budget: ${budget}. Interests: ${interests}. Travel style: ${style}. Make each recommendation specific, varied and genuinely useful. Include a mix of popular highlights and hidden gems.`
+        }
+      ]
+    });
+    const data = JSON.parse(result.choices[0].message.content || '{"cards":[]}');
+    return data.cards || [];
+  } catch (err) {
+    console.error(`Error generating ${category}:`, err);
+    return [];
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { query } = await req.json();
@@ -17,16 +64,7 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: "system",
-          content: `You are a travel query parser. Extract structured trip data and return ONLY valid JSON:
-{
-  "destination": "city name",
-  "country": "country name",
-  "duration_days": 5,
-  "travel_dates": { "month": "October", "year": null },
-  "budget_usd": 2000,
-  "interests": ["ramen", "shrines"],
-  "travel_style": "solo"
-}`
+          content: "You are a travel query parser. Extract structured trip data and return ONLY valid JSON with these fields: destination (string), country (string), duration_days (number), travel_dates (object with month string and year number or null), budget_usd (number or null), interests (array of strings), travel_style (solo/couple/family/group)."
         },
         { role: "user", content: query }
       ]
@@ -34,39 +72,48 @@ export async function POST(req: NextRequest) {
 
     const trip = JSON.parse(parseResult.choices[0].message.content || "{}");
 
-    const recResult = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content: `You are a travel guide. Return ONLY a JSON object with a "cards" array containing 5 recommendations for EACH of these 7 categories: Casual, Adventure, Fun, Culture, Fine Dining, Street Food, Cafes.
+    const destination = trip.destination || "the destination";
+    const country = trip.country || "";
+    const duration = trip.duration_days || 7;
+    const month = trip.travel_dates?.month || "";
+    const budget = trip.budget_usd ? "$" + trip.budget_usd : "flexible";
+    const interests = Array.isArray(trip.interests) ? trip.interests.join(", ") : "";
+    const style = trip.travel_style || "solo";
 
-Each card must have:
-{
-  "id": "unique-slug",
-  "title": "Place name",
-  "category": "one of the 7 categories",
-  "type": "attraction or dining",
-  "imageUrl": "",
-  "location": "specific district or address",
-  "duration": "1-2 hours",
-  "whyVisit": "Exactly 2 sentences specific to this traveller.",
-  "referenceUrl": "https://google.com/search?q=place+name",
-  "priceRange": "Free or $ or $$ or $$$ or $$$$"
-}`
-        },
-        {
-          role: "user",
-          content: `Trip: ${trip.duration_days} days in ${trip.destination}, ${trip.country} in ${trip.travel_dates?.month}. Budget: $${trip.budget_usd ?? "flexible"}. Interests: ${trip.interests?.join(", ")}. Style: ${trip.travel_style}.`
-        }
-      ]
-    });
+    const categories = [
+      { name: "Casual", type: "attraction" },
+      { name: "Adventure", type: "attraction" },
+      { name: "Fun", type: "attraction" },
+      { name: "Culture", type: "attraction" },
+      { name: "Fine Dining", type: "dining" },
+      { name: "Street Food", type: "dining" },
+      { name: "Cafes", type: "dining" },
+    ];
 
-    const recData = JSON.parse(recResult.choices[0].message.content || '{"cards":[]}');
-    const cards = recData.cards || [];
+    // Generate all 7 categories in parallel
+    const categoryResults = await Promise.all(
+      categories.map(cat =>
+        generateCategory(cat.name, cat.type, destination, country, duration, month, budget, interests, style)
+      )
+    );
 
-    return NextResponse.json({ trip, cards });
+    const allCards = categoryResults.flat();
+
+    // Fetch images in batches of 10 to avoid rate limits
+    const enriched: Record<string, unknown>[] = [];
+    for (let i = 0; i < allCards.length; i += 10) {
+      const batch = allCards.slice(i, i + 10);
+      const batchEnriched = await Promise.all(
+        batch.map(async (card) => {
+          const imageQuery = String(card.title) + " " + destination;
+          const imageUrl = await fetchImage(imageQuery);
+          return { ...card, imageUrl };
+        })
+      );
+      enriched.push(...batchEnriched);
+    }
+
+    return NextResponse.json({ trip, cards: enriched });
   } catch (err) {
     console.error("parse-query error:", err);
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
