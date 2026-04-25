@@ -5,13 +5,23 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 async function fetchImage(query: string): Promise<string> {
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
     const res = await fetch(
       `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`,
-      { headers: { Authorization: process.env.PEXELS_API_KEY || "" } }
+      { headers: { Authorization: process.env.PEXELS_API_KEY || "" }, signal: controller.signal }
     );
+    clearTimeout(timeout);
+    if (!res.ok) {
+      console.error("Pexels error:", res.status, res.statusText);
+      return "";
+    }
     const data = await res.json();
-    return data.photos?.[0]?.src?.large || "";
-  } catch {
+    const url = data.photos?.[0]?.src?.large || "";
+    if (!url) console.error("Pexels no results for:", query);
+    return url;
+  } catch (err) {
+    console.error("Pexels fetch failed:", err);
     return "";
   }
 }
