@@ -171,7 +171,7 @@ export async function exportToDOCX(trip: ParsedTrip, cards: TripCard[]) {
     await import("docx");
 
   const grouped = groupByCategory(cards);
-  const children: (Paragraph)[] = [];
+  const children: unknown[] = [];
 
   // Doc title
   children.push(
