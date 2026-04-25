@@ -1,3 +1,4 @@
+
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -11,11 +12,11 @@ type Plan = { summary: string; days: Day[]; };
 type TripCard = { id: string; title: string; category: string; type: string; imageUrl: string; location: string; duration: string; whyVisit: string; referenceUrl: string; priceRange?: string; };
 
 const TIME_COLORS: Record<string, string> = {
-  "Morning": "bg-amber-50 text-amber-700 border-amber-200",
-  "Late Morning": "bg-orange-50 text-orange-700 border-orange-200",
-  "Afternoon": "bg-blue-50 text-blue-700 border-blue-200",
-  "Evening": "bg-purple-50 text-purple-700 border-purple-200",
-  "Night": "bg-gray-900 text-white border-gray-700",
+  "Morning": "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  "Late Morning": "bg-orange-500/10 text-orange-400 border-orange-500/20",
+  "Afternoon": "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  "Evening": "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  "Night": "bg-gray-800 text-gray-300 border-gray-700",
 };
 
 export default function ItineraryPage() {
@@ -32,21 +33,19 @@ export default function ItineraryPage() {
     const raw = sessionStorage.getItem("itinerary");
     if (!raw) { router.replace("/"); return; }
     const { trip, cards } = JSON.parse(raw);
-    setTrip(trip);
-    setCards(cards);
+    setTrip(trip); setCards(cards);
     generatePlan(trip, cards);
   }, [router]);
 
   const generatePlan = async (trip: Record<string, unknown>, cards: TripCard[]) => {
-    setLoading(true);
-    setError("");
+    setLoading(true); setError("");
     try {
       const res = await fetch("/api/plan-itinerary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ trip, cards }),
       });
-      if (!res.ok) throw new Error("Failed to plan");
+      if (!res.ok) throw new Error("Failed");
       const data = await res.json();
       setPlan(data);
     } catch {
@@ -111,48 +110,73 @@ export default function ItineraryPage() {
   if (!trip) return null;
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-100 px-6 py-4 sticky top-0 z-10">
-        <button onClick={() => router.back()} className="text-sm text-gray-400 hover:text-gray-600 mb-1 block">← Back to Discovery</button>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900">{String(trip.destination)} · {String(trip.duration_days)}-Day Itinerary</h1>
-            <p className="text-sm text-gray-400">{cards.length} experiences · {String(trip.travel_dates as string || (trip.travel_dates as Record<string,unknown>)?.month || "")}</p>
-          </div>
-          {plan && (
-            <div className="flex gap-2">
-              {[{f:"pdf",i:"📄"},{f:"xlsx",i:"📊"}].map(({f,i}) => (
-                <button key={f} onClick={() => handleExport(f)} disabled={!!exporting}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 hover:border-gray-400 text-sm transition-all">
-                  <span>{i}</span><span className="text-gray-600 font-medium">{exporting===f ? "..." : f.toUpperCase()}</span>
-                </button>
-              ))}
+    <main className="min-h-screen bg-gray-950">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-20 left-1/4 w-96 h-96 bg-orange-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-rose-500/5 rounded-full blur-3xl" />
+      </div>
+
+      <div className="relative z-10 bg-gray-950/80 backdrop-blur border-b border-gray-800 sticky top-0">
+        <div className="max-w-4xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <a href="/" className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center shadow-lg shadow-orange-500/20 flex-shrink-0">
+                <span className="text-white font-bold text-sm">W</span>
+              </a>
+              <div>
+                <h1 className="text-base font-semibold text-white">
+                  {String(trip.destination)} · {String(trip.duration_days)}-Day Itinerary
+                </h1>
+                <p className="text-xs text-gray-500">{cards.length} experiences selected</p>
+              </div>
             </div>
-          )}
+            <div className="flex items-center gap-2">
+              <button onClick={() => router.back()} className="text-xs px-3 py-1.5 rounded-lg border border-gray-800 text-gray-400 hover:border-gray-600 hover:text-gray-200 transition-all">
+                ← Back
+              </button>
+              {plan && (
+                <>
+                  {[{f:"pdf",i:"📄"},{f:"xlsx",i:"📊"}].map(({f,i}) => (
+                    <button key={f} onClick={() => handleExport(f)} disabled={!!exporting}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-800 text-gray-400 hover:border-gray-600 hover:text-gray-200 text-xs transition-all">
+                      <span>{i}</span><span>{exporting===f ? "..." : f.toUpperCase()}</span>
+                    </button>
+                  ))}
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-32 gap-4">
-          <div className="w-10 h-10 border-2 border-gray-200 border-t-gray-900 rounded-full animate-spin" />
-          <p className="text-sm text-gray-400">Planning your perfect itinerary...</p>
-          <p className="text-xs text-gray-300">Grouping by location, timing meals, optimising your days</p>
+        <div className="relative z-10 flex flex-col items-center justify-center py-32 gap-4">
+          <div className="w-10 h-10 border-2 border-gray-800 border-t-orange-400 rounded-full animate-spin" />
+          <p className="text-white font-medium">Planning your perfect itinerary...</p>
+          <p className="text-gray-600 text-sm">Grouping by location · Timing meals · Optimising your days</p>
         </div>
       ) : error ? (
-        <div className="max-w-2xl mx-auto px-6 py-20 text-center">
+        <div className="relative z-10 max-w-2xl mx-auto px-6 py-20 text-center">
           <p className="text-red-400 mb-4">{error}</p>
-          <button onClick={() => generatePlan(trip!, cards)} className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm">Try Again</button>
+          <button onClick={() => generatePlan(trip!, cards)}
+            className="px-4 py-2 bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-xl text-sm">
+            Try Again
+          </button>
         </div>
       ) : plan ? (
-        <div className="max-w-4xl mx-auto px-6 py-8">
-          <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-8">
-            <p className="text-sm text-gray-600 leading-relaxed">{plan.summary}</p>
+        <div className="relative z-10 max-w-4xl mx-auto px-6 py-8">
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 mb-8">
+            <p className="text-gray-400 text-sm leading-relaxed">{plan.summary}</p>
           </div>
 
           <div className="flex gap-2 mb-6 flex-wrap">
             {plan.days.map(day => (
               <button key={day.day} onClick={() => setActiveDay(day.day)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border ${activeDay === day.day ? "bg-gray-900 text-white border-gray-900" : "bg-white border-gray-200 text-gray-600 hover:border-gray-400"}`}>
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border ${
+                  activeDay === day.day
+                    ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white border-transparent shadow-lg shadow-orange-500/20"
+                    : "bg-gray-900 border-gray-800 text-gray-400 hover:border-gray-600 hover:text-gray-200"
+                }`}>
                 Day {day.day}
               </button>
             ))}
@@ -161,27 +185,28 @@ export default function ItineraryPage() {
           {plan.days.filter(d => d.day === activeDay).map(day => (
             <div key={day.day}>
               <div className="mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">{day.title}</h2>
-                <p className="text-sm text-gray-400 mt-1">{day.theme}</p>
+                <h2 className="text-xl font-bold text-white">{day.title}</h2>
+                <p className="text-sm text-gray-500 mt-1">{day.theme}</p>
               </div>
               <div className="flex flex-col gap-4">
                 {day.slots.map((slot, i) => (
-                  <div key={i} className="bg-white border border-gray-200 rounded-2xl overflow-hidden flex">
+                  <div key={i} className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden flex hover:border-gray-700 transition-all">
                     {slot.imageUrl && (
                       <div className="w-32 h-32 flex-shrink-0">
-                        <img src={slot.imageUrl} alt={slot.title} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display="none"; }} />
+                        <img src={slot.imageUrl} alt={slot.title} className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display="none"; }} />
                       </div>
                     )}
                     <div className="p-4 flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${TIME_COLORS[slot.time] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${TIME_COLORS[slot.time] ?? "bg-gray-800 text-gray-400 border-gray-700"}`}>
                           {slot.time}
                         </span>
-                        <span className="text-xs text-gray-400">{slot.category}</span>
+                        <span className="text-xs text-gray-600">{slot.category}</span>
                       </div>
-                      <h3 className="font-semibold text-gray-900 text-sm mb-1">{slot.title}</h3>
-                      <p className="text-xs text-gray-400 mb-2">📍 {slot.location} · ⏱ {slot.duration}</p>
-                      <p className="text-xs text-gray-500 leading-relaxed">{slot.whyNow}</p>
+                      <h3 className="font-semibold text-white text-sm mb-1">{slot.title}</h3>
+                      <p className="text-xs text-gray-500 mb-2">📍 {slot.location} · ⏱ {slot.duration}</p>
+                      <p className="text-xs text-gray-400 leading-relaxed">{slot.whyNow}</p>
                     </div>
                   </div>
                 ))}
