@@ -171,7 +171,8 @@ export async function exportToDOCX(trip: ParsedTrip, cards: TripCard[]) {
     await import("docx");
 
   const grouped = groupByCategory(cards);
-  const children: unknown[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const children: any[] = [];
 
   // Doc title
   children.push(
