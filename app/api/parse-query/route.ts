@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,48 +11,60 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Please describe your trip in more detail." }, { status: 400 });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-    const parsePrompt = `Extract trip details from this text and return ONLY valid JSON:
-"${query}"
-
-Return this exact JSON structure:
+    const parseResult = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: `You are a travel query parser. Extract structured trip data and return ONLY valid JSON:
 {
   "destination": "city name",
-  "country": "country name", 
+  "country": "country name",
   "duration_days": 5,
   "travel_dates": { "month": "October", "year": null },
   "budget_usd": 2000,
   "interests": ["ramen", "shrines"],
   "travel_style": "solo"
-}`;
+}`
+        },
+        { role: "user", content: query }
+      ]
+    });
 
-    const parseResult = await model.generateContent(parsePrompt);
-    const parseText = parseResult.response.text().replace(/```json|```/g, "").trim();
-    const trip = JSON.parse(parseText);
+    const trip = JSON.parse(parseResult.choices[0].message.content || "{}");
 
-    const recPrompt = `You are a travel guide. Generate 5 recommendations for EACH of these categories: Casual, Adventure, Fun, Culture, Fine Dining, Street Food, Cafes.
+    const recResult = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: `You are a travel guide. Return ONLY a JSON object with a "cards" array containing 5 recommendations for EACH of these 7 categories: Casual, Adventure, Fun, Culture, Fine Dining, Street Food, Cafes.
 
-Trip: ${trip.duration_days} days in ${trip.destination}, ${trip.country} in ${trip.travel_dates.month}.
-Budget: $${trip.budget_usd ?? "flexible"}. Interests: ${trip.interests?.join(", ")}.
-
-Return ONLY a JSON array:
-[{
+Each card must have:
+{
   "id": "unique-slug",
   "title": "Place name",
-  "category": "Casual",
-  "type": "attraction",
+  "category": "one of the 7 categories",
+  "type": "attraction or dining",
   "imageUrl": "",
-  "location": "District or address",
+  "location": "specific district or address",
   "duration": "1-2 hours",
-  "whyVisit": "Two sentences specific to this traveller.",
-  "referenceUrl": "https://google.com/search?q=place+name+${trip.destination}",
-  "priceRange": "Free"
-}]`;
+  "whyVisit": "Exactly 2 sentences specific to this traveller.",
+  "referenceUrl": "https://google.com/search?q=place+name",
+  "priceRange": "Free or $ or $$ or $$$ or $$$$"
+}`
+        },
+        {
+          role: "user",
+          content: `Trip: ${trip.duration_days} days in ${trip.destination}, ${trip.country} in ${trip.travel_dates?.month}. Budget: $${trip.budget_usd ?? "flexible"}. Interests: ${trip.interests?.join(", ")}. Style: ${trip.travel_style}.`
+        }
+      ]
+    });
 
-    const recResult = await model.generateContent(recPrompt);
-    const recText = recResult.response.text().replace(/```json|```/g, "").trim();
-    const cards = JSON.parse(recText);
+    const recData = JSON.parse(recResult.choices[0].message.content || '{"cards":[]}');
+    const cards = recData.cards || [];
 
     return NextResponse.json({ trip, cards });
   } catch (err) {
