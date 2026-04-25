@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ✈ Itinerai — AI Travel Itinerary Generator
 
 A free, open-source AI travel planning web app built with Next.js, Gemini AI, and Supabase.
@@ -193,3 +194,7 @@ PRs welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md).
 ## License
 
 MIT — use freely, attribution appreciated.
+=======
+# Waylo
+AI Powered Travel Itinerary
+>>>>>>> b6b8d46ec7d1a348b8fa30780763a057dd56fd77
