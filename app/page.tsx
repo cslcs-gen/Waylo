@@ -220,7 +220,7 @@ export default function LandingPage() {
           {error && <p className="mt-2 text-sm text-red-400 text-center">{error}</p>}
 
           <p className="mt-4 text-center text-xs text-gray-600">
-            No sign-up required · Takes 60–90 seconds · 140+ curated experiences per trip
+            One destination at a time · No sign-up required · 140+ curated experiences per trip
           </p>
         </div>
 

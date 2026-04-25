@@ -82,6 +82,16 @@ export async function POST(req: NextRequest) {
 
     const trip = JSON.parse(parseResult.choices[0].message.content || "{}");
 
+    // Reject multi-destination queries
+    const dest = String(trip.destination || "");
+    const multiIndicators = [" and ", " & ", " + ", ",", " then ", " to ", "/"];
+    const isMultiDest = multiIndicators.some(ind => dest.toLowerCase().includes(ind));
+    if (isMultiDest) {
+      return NextResponse.json({
+        error: "It looks like you entered multiple destinations. For the best experience, please plan one destination at a time. Try again with just one city or country!"
+      }, { status: 400 });
+    }
+
     const destination = trip.destination || "the destination";
     const country = trip.country || "";
     const duration = trip.duration_days || 7;
