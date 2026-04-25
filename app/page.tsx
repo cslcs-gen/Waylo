@@ -42,6 +42,19 @@ export default function LandingPage() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [error, setError] = useState("");
   const [exampleIdx, setExampleIdx] = useState(0);
+  const [shared, setShared] = useState(false);
+
+  const handleShare = async () => {
+    const url = "https://waylo-seven.vercel.app";
+    const text = "Plan your next trip with AI — Waylo curates 140+ personalised experiences and builds your day-by-day itinerary in minutes.";
+    if (navigator.share) {
+      await navigator.share({ title: "Waylo — AI Travel Planner", text, url });
+    } else {
+      await navigator.clipboard.writeText(url);
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    }
+  };
   const [typedText, setTypedText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
@@ -165,6 +178,18 @@ export default function LandingPage() {
         <div className="flex items-center gap-6 text-sm text-gray-500">
           <a href="/itinerary" className="hover:text-gray-300 transition-colors">My Itinerary</a>
           <a href="/admin" className="hover:text-gray-300 transition-colors">Admin</a>
+          <button onClick={handleShare}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+              shared
+                ? "border-green-500/50 text-green-400 bg-green-500/10"
+                : "border-gray-800 text-gray-400 hover:border-gray-600 hover:text-gray-200"
+            }`}>
+            {shared ? (
+              <><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg> Copied!</>
+            ) : (
+              <><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg> Share</>
+            )}
+          </button>
         </div>
       </nav>
 
