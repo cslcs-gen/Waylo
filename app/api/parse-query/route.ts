@@ -3,13 +3,15 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// Track used image URLs to prevent duplicates
+const usedImageUrls = new Set<string>();
+
 async function fetchWikimediaImage(placeName: string, destination: string): Promise<string> {
   try {
-    // Try exact place name first, then with destination
-    const queries = [placeName, `${placeName} ${destination}`];
+    const queries = [placeName, placeName + " " + destination, placeName + " " + destination + " landmark"];
     for (const q of queries) {
       const searchRes = await fetch(
-        `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(q)}&prop=pageimages&format=json&pithumbsize=800&origin=*`,
+        "https://en.wikipedia.org/w/api.php?action=query&titles=" + encodeURIComponent(q) + "&prop=pageimages&format=json&pithumbsize=800&origin=*",
         { headers: { "User-Agent": "Waylo/1.0 (travel app)" } }
       );
       if (!searchRes.ok) continue;
@@ -17,26 +19,45 @@ async function fetchWikimediaImage(placeName: string, destination: string): Prom
       const pages = searchData.query?.pages || {};
       const page = Object.values(pages)[0] as Record<string, unknown>;
       const thumb = (page?.thumbnail as Record<string, unknown>)?.source as string;
-      if (thumb && !thumb.includes("Flag_of") && !thumb.includes("Logo") && !thumb.includes("map")) {
+      const blocked = ["Flag_of", "Logo", "logo", "map", "Map", "icon", "Icon", "symbol", "Symbol", "coat", "Coat", "blank", "Blank"];
+      if (thumb && !blocked.some(b => thumb.includes(b)) && !usedImageUrls.has(thumb)) {
+        usedImageUrls.add(thumb);
         return thumb;
       }
     }
-    return await fetchPexelsImage(placeName + " " + destination);
+    return await fetchPexelsImage(placeName, destination);
   } catch (err) {
     console.error("Wikimedia fetch failed:", err);
-    return await fetchPexelsImage(placeName + " " + destination);
+    return await fetchPexelsImage(placeName, destination);
   }
 }
 
-async function fetchPexelsImage(query: string): Promise<string> {
+async function fetchPexelsImage(placeName: string, destination: string): Promise<string> {
   try {
-    const res = await fetch(
-      `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`,
-      { headers: { Authorization: process.env.PEXELS_API_KEY || "" } }
-    );
-    if (!res.ok) return "";
-    const data = await res.json();
-    return data.photos?.[0]?.src?.large || "";
+    // Try specific query first, then broader
+    const queries = [
+      placeName + " " + destination,
+      destination + " travel landmark",
+      destination + " tourism",
+    ];
+    for (const q of queries) {
+      const res = await fetch(
+        "https://api.pexels.com/v1/search?query=" + encodeURIComponent(q) + "&per_page=5&orientation=landscape",
+        { headers: { Authorization: process.env.PEXELS_API_KEY || "" } }
+      );
+      if (!res.ok) continue;
+      const data = await res.json();
+      const photos = data.photos || [];
+      // Find first photo not already used
+      for (const photo of photos) {
+        const url = photo?.src?.large || "";
+        if (url && !usedImageUrls.has(url)) {
+          usedImageUrls.add(url);
+          return url;
+        }
+      }
+    }
+    return "";
   } catch {
     return "";
   }
@@ -113,6 +134,7 @@ export async function POST(req: NextRequest) {
     }
 
     const destination = trip.destination || "the destination";
+    usedImageUrls.clear(); // Reset per request
     const country = trip.country || "";
     const duration = trip.duration_days || 7;
     const month = trip.travel_dates?.month || "";
