@@ -10,7 +10,7 @@ interface AdminData {
   topDestinations: { destination: string; count: number }[];
   pageBreakdown: { page: string; count: number }[];
   recentSearches: { destination: string; raw_query: string; travel_style: string; duration_days: number; budget_usd: number; created_at: string }[];
-  recentFeedback: { rating: number; found_relevant: boolean; would_recommend: boolean; favourite_feature: string; improvement: string; destination_searched: string; created_at: string }[];
+  recentFeedback: { rating: number; found_relevant: boolean; would_recommend: boolean; favourite_feature: string; improvement: string; free_text: string; destination_searched: string; created_at: string }[];
   allFeedback: Record<string, unknown>[];
 }
 
@@ -39,7 +39,7 @@ export default function AdminPage() {
     if (!data) return;
     import("xlsx").then(XLSX => {
       const rows = [
-        ["Date", "Destination", "Rating", "Found Relevant", "Would Recommend", "Favourite Feature", "Improvement"],
+        ["Date", "Destination", "Rating", "Found Relevant", "Would Recommend", "Favourite Feature", "Improvement", "Additional Comments"],
         ...data.allFeedback.map((f: Record<string, unknown>) => [
           new Date(String(f.created_at)).toLocaleDateString(),
           String(f.destination_searched || ""),
@@ -48,6 +48,7 @@ export default function AdminPage() {
           f.would_recommend ? "Yes" : "No",
           String(f.favourite_feature || ""),
           String(f.improvement || ""),
+          String((f as Record<string,unknown>).free_text || ""),
         ])
       ];
       const ws = XLSX.utils.aoa_to_sheet(rows);
@@ -262,6 +263,12 @@ export default function AdminPage() {
                     <div>
                       <span className="text-gray-500 text-xs">Suggested improvement</span>
                       <p className="text-gray-300">{f.improvement}</p>
+                    </div>
+                  )}
+                  {f.free_text && (
+                    <div className="sm:col-span-2">
+                      <span className="text-gray-500 text-xs">Additional comments</span>
+                      <p className="text-gray-300">{f.free_text}</p>
                     </div>
                   )}
                 </div>

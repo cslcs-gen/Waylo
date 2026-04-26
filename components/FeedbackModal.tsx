@@ -11,6 +11,7 @@ export default function FeedbackModal() {
   const [wouldRecommend, setWouldRecommend] = useState<boolean | null>(null);
   const [favouriteFeature, setFavouriteFeature] = useState("");
   const [improvement, setImprovement] = useState("");
+  const [freeText, setFreeText] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -26,7 +27,7 @@ export default function FeedbackModal() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         sessionId, rating, foundRelevant, wouldRecommend,
-        favouriteFeature, improvement, destinationSearched: destination,
+        favouriteFeature, improvement, freeText, destinationSearched: destination,
       }),
     });
     setSubmitted(true);
@@ -116,6 +117,14 @@ export default function FeedbackModal() {
                   <p className="text-gray-300 text-sm font-medium mb-2">5. What could we improve?</p>
                   <textarea value={improvement} onChange={e => setImprovement(e.target.value)} rows={2}
                     placeholder="Tell us anything — we read every response..."
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-orange-500/50 resize-none placeholder:text-gray-600" />
+                </div>
+
+                {/* Q6: Free text */}
+                <div className="mb-6">
+                  <p className="text-gray-300 text-sm font-medium mb-2">6. Anything else you would like to share with us?</p>
+                  <textarea value={freeText} onChange={e => setFreeText(e.target.value)} rows={3}
+                    placeholder="Share any thoughts, ideas, or experiences — we appreciate every word..."
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-orange-500/50 resize-none placeholder:text-gray-600" />
                 </div>
 

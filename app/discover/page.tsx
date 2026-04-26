@@ -196,11 +196,24 @@ export default function DiscoverPage() {
                     {card.priceRange ? ` · ${card.priceRange}` : ""}
                   </p>
                   <p className="text-xs text-gray-400 leading-relaxed mb-3">{card.whyVisit}</p>
-                  <a href={card.referenceUrl} target="_blank" rel="noopener noreferrer"
-                    onClick={e => e.stopPropagation()}
-                    className="text-xs text-orange-400 hover:text-orange-300 transition-colors">
-                    Learn more →
-                  </a>
+                  <div className="flex items-center gap-3">
+                    <a href={card.referenceUrl} target="_blank" rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      className="text-xs text-orange-400 hover:text-orange-300 transition-colors">
+                      Learn more →
+                    </a>
+                    
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(card.title + " " + card.location)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-green-400 transition-colors">
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                      </svg>
+                      Maps
+                    </a>
+                  </div>
                 </div>
               </div>
             ))}
