@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
       const batchEnriched = await Promise.all(
         batch.map(async (card) => {
           const imageQuery = String(card.title) + " " + destination;
-          const imageUrl = await fetchImage(imageQuery);
+          const imageUrl = await fetchImage(String(card.title), destination);
           return { ...card, imageUrl };
         })
       );
