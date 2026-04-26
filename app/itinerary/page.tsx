@@ -100,7 +100,7 @@ export default function ItineraryPage() {
             rows.push([
               "Day " + day.day + ": " + day.title,
               slot.time, slot.title, slot.location, slot.duration, slot.category, slot.whyNow,
-              "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(slot.title + " " + slot.location)
+              "https://maps.google.com/?q=" + encodeURIComponent(slot.title + " " + slot.location)
             ]);
           }
         }
@@ -218,7 +218,7 @@ export default function ItineraryPage() {
                       <p className="text-xs text-gray-500 mb-2">📍 {slot.location} · ⏱ {slot.duration}</p>
                       <p className="text-xs text-gray-400 leading-relaxed mb-3">{slot.whyNow}</p>
                       
-                        href={"https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(slot.title + " " + slot.location)}
+                        href={"https://maps.google.com/?q=" + encodeURIComponent(slot.title + " " + slot.location)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-green-400 transition-colors border border-gray-800 hover:border-green-500/30 px-2.5 py-1 rounded-lg">
