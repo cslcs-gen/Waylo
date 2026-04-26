@@ -221,7 +221,7 @@ export default function ItineraryPage() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-green-400 transition-colors border border-gray-800 hover:border-green-500/30 px-2.5 py-1 rounded-lg">
                         <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
                         </svg>
                         Open in Google Maps
                       </a>
