@@ -37,14 +37,14 @@ export default function FeedbackModal() {
   return (
     <>
       <button onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-800 text-gray-400 hover:border-gray-600 hover:text-gray-200 text-xs font-medium transition-all">
-        💬 Feedback
+        className="fixed bottom-6 right-6 z-[9998] flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 text-white text-xs font-semibold shadow-lg shadow-orange-500/30 hover:from-orange-400 hover:to-rose-400 active:scale-95 transition-all">
+        💬 Give Feedback
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="relative z-10 w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-2xl">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setOpen(false)} />
+          <div className="relative z-10 w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             {submitted ? (
               <div className="text-center py-8">
                 <p className="text-4xl mb-3">🙏</p>

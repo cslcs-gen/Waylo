@@ -1,7 +1,6 @@
 
 "use client";
 import { useEffect, useState } from "react";
-import FeedbackModal from "@/components/FeedbackModal";
 import { useRouter } from "next/navigation";
 
 type TripCard = {
@@ -36,6 +35,31 @@ export default function DiscoverPage() {
     if (!raw) { router.replace("/"); return; }
     const { trip, cards } = JSON.parse(raw);
     setTrip(trip); setCards(cards);
+
+    // Track page visit
+    const sessionId = localStorage.getItem("wayloSessionId") || "";
+    fetch("/api/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "visit", sessionId, page: "/discover", referrer: document.referrer }),
+    }).catch(() => {});
+
+    // Track search
+    if (trip) {
+      fetch("/api/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "search",
+          sessionId,
+          rawQuery: "",
+          destination: trip.destination,
+          durationDays: trip.duration_days,
+          budgetUsd: trip.budget_usd,
+          travelStyle: trip.travel_style,
+        }),
+      }).catch(() => {});
+    }
   }, [router]);
 
   const toggleCard = (id: string) => {

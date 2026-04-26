@@ -3,27 +3,47 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-async function fetchImage(query: string): Promise<string> {
+async function fetchWikimediaImage(placeName: string, destination: string): Promise<string> {
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
+    // Try exact place name first, then with destination
+    const queries = [placeName, `${placeName} ${destination}`];
+    for (const q of queries) {
+      const searchRes = await fetch(
+        `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(q)}&prop=pageimages&format=json&pithumbsize=800&origin=*`,
+        { headers: { "User-Agent": "Waylo/1.0 (travel app)" } }
+      );
+      if (!searchRes.ok) continue;
+      const searchData = await searchRes.json();
+      const pages = searchData.query?.pages || {};
+      const page = Object.values(pages)[0] as Record<string, unknown>;
+      const thumb = (page?.thumbnail as Record<string, unknown>)?.source as string;
+      if (thumb && !thumb.includes("Flag_of") && !thumb.includes("Logo") && !thumb.includes("map")) {
+        return thumb;
+      }
+    }
+    return await fetchPexelsImage(placeName + " " + destination);
+  } catch (err) {
+    console.error("Wikimedia fetch failed:", err);
+    return await fetchPexelsImage(placeName + " " + destination);
+  }
+}
+
+async function fetchPexelsImage(query: string): Promise<string> {
+  try {
     const res = await fetch(
       `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`,
-      { headers: { Authorization: process.env.PEXELS_API_KEY || "" }, signal: controller.signal }
+      { headers: { Authorization: process.env.PEXELS_API_KEY || "" } }
     );
-    clearTimeout(timeout);
-    if (!res.ok) {
-      console.error("Pexels error:", res.status, res.statusText);
-      return "";
-    }
+    if (!res.ok) return "";
     const data = await res.json();
-    const url = data.photos?.[0]?.src?.large || "";
-    if (!url) console.error("Pexels no results for:", query);
-    return url;
-  } catch (err) {
-    console.error("Pexels fetch failed:", err);
+    return data.photos?.[0]?.src?.large || "";
+  } catch {
     return "";
   }
+}
+
+async function fetchImage(placeName: string, destination: string): Promise<string> {
+  return await fetchWikimediaImage(placeName, destination);
 }
 
 async function generateCategory(

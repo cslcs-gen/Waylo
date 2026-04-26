@@ -35,6 +35,14 @@ export default function ItineraryPage() {
     const { trip, cards } = JSON.parse(raw);
     setTrip(trip); setCards(cards);
     generatePlan(trip, cards);
+
+    // Track page visit
+    const sessionId = localStorage.getItem("wayloSessionId") || "";
+    fetch("/api/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "visit", sessionId, page: "/itinerary", referrer: document.referrer }),
+    }).catch(() => {});
   }, [router]);
 
   const generatePlan = async (trip: Record<string, unknown>, cards: TripCard[]) => {

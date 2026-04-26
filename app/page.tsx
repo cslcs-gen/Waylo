@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import FeedbackModal from "@/components/FeedbackModal";
 import { useRouter } from "next/navigation";
 
 const EXAMPLE_PROMPTS = [
@@ -43,6 +42,22 @@ export default function LandingPage() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [error, setError] = useState("");
   const [exampleIdx, setExampleIdx] = useState(0);
+
+  // Track page visit on load
+  useEffect(() => {
+    const sessionId = localStorage.getItem("wayloSessionId") ?? crypto.randomUUID();
+    localStorage.setItem("wayloSessionId", sessionId);
+    fetch("/api/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "visit",
+        sessionId,
+        page: "/",
+        referrer: document.referrer,
+      }),
+    }).catch(() => {});
+  }, []);
   const [shared, setShared] = useState(false);
 
   const handleShare = async () => {
@@ -179,7 +194,6 @@ export default function LandingPage() {
         <div className="flex items-center gap-6 text-sm text-gray-500">
           <a href="/itinerary" className="hover:text-gray-300 transition-colors">My Itinerary</a>
           <a href="/admin" className="hover:text-gray-300 transition-colors">Admin</a>
-          <FeedbackModal />
           <button onClick={handleShare}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
               shared
