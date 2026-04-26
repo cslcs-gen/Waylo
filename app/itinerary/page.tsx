@@ -217,13 +217,11 @@ export default function ItineraryPage() {
                       <h3 className="font-semibold text-white text-sm mb-1">{slot.title}</h3>
                       <p className="text-xs text-gray-500 mb-2">📍 {slot.location} · ⏱ {slot.duration}</p>
                       <p className="text-xs text-gray-400 leading-relaxed mb-3">{slot.whyNow}</p>
-                      
-                        href={"https://maps.google.com/?q=" + encodeURIComponent(slot.title + " " + slot.location)}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        onClick={() => window.open("https://maps.google.com/?q=" + encodeURIComponent(slot.title + " " + slot.location), "_blank")}
                         className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-green-400 transition-colors border border-gray-800 hover:border-green-500/30 px-2.5 py-1 rounded-lg">
                         📍 Open in Google Maps
-                      </a>
+                      </button>
                     </div>
                   </div>
                 ))}

@@ -193,14 +193,11 @@ export default function DiscoverPage() {
                       className="text-xs text-orange-400 hover:text-orange-300 transition-colors">
                       Learn more
                     </a>
-                    
-                      href={"https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(card.title + " " + card.location)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={e => e.stopPropagation()}
+                    <button
+                      onClick={e => { e.stopPropagation(); window.open("https://maps.google.com/?q=" + encodeURIComponent(card.title + " " + card.location), "_blank"); }}
                       className="text-xs text-gray-500 hover:text-green-400 transition-colors">
                       📍 Maps
-                    </a>
+                    </button>
                   </div>
                 </div>
               </div>
