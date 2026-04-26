@@ -35,28 +35,20 @@ export default function DiscoverPage() {
     if (!raw) { router.replace("/"); return; }
     const { trip, cards } = JSON.parse(raw);
     setTrip(trip); setCards(cards);
-
-    // Track page visit
     const sessionId = localStorage.getItem("wayloSessionId") || "";
     fetch("/api/track", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "visit", sessionId, page: "/discover", referrer: document.referrer }),
     }).catch(() => {});
-
-    // Track search
     if (trip) {
       fetch("/api/track", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "search",
-          sessionId,
-          rawQuery: "",
-          destination: trip.destination,
-          durationDays: trip.duration_days,
-          budgetUsd: trip.budget_usd,
-          travelStyle: trip.travel_style,
+          type: "search", sessionId, rawQuery: "",
+          destination: trip.destination, durationDays: trip.duration_days,
+          budgetUsd: trip.budget_usd, travelStyle: trip.travel_style,
         }),
       }).catch(() => {});
     }
@@ -108,17 +100,16 @@ export default function DiscoverPage() {
               <div>
                 <h1 className="text-base font-semibold text-white">{String(trip.destination)}</h1>
                 <p className="text-xs text-gray-500">
-                  {String(trip.duration_days)} days · {String((trip.travel_dates as Record<string,unknown>)?.month || "")}
+                  {String(trip.duration_days)} days
                   {trip.budget_usd ? ` · $${Number(trip.budget_usd).toLocaleString()} budget` : ""}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
               <button onClick={() => setSelectedIds(new Set(cards.map(c => c.id)))}
                 className="text-xs px-3 py-1.5 rounded-lg border border-gray-800 text-gray-400 hover:border-gray-600 hover:text-gray-200 transition-all">
                 Select All
               </button>
-              <FeedbackModal />
               <button onClick={() => setSelectedIds(new Set())}
                 className="text-xs px-3 py-1.5 rounded-lg border border-gray-800 text-gray-400 hover:border-gray-600 hover:text-gray-200 transition-all">
                 Clear
@@ -127,7 +118,7 @@ export default function DiscoverPage() {
                 <button onClick={goToItinerary}
                   className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-rose-500 text-white text-sm px-4 py-2 rounded-xl hover:from-orange-400 hover:to-rose-400 transition-all shadow-lg shadow-orange-500/25 active:scale-95">
                   <span className="bg-white/20 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">{selectedIds.size}</span>
-                  Build Itinerary →
+                  Build Itinerary
                 </button>
               )}
             </div>
@@ -136,7 +127,7 @@ export default function DiscoverPage() {
           <div className="flex gap-1 mt-4">
             {(["attractions", "dining"] as const).map(tab => (
               <button key={tab} onClick={() => { setActiveTab(tab); setActiveSubTab(tab === "attractions" ? "Casual" : "Fine Dining"); }}
-                className={`px-4 py-2 rounded-lg text-sm transition-all ${activeTab === tab ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white font-medium shadow-lg shadow-orange-500/20" : "text-gray-500 hover:text-gray-300 hover:bg-gray-900"}`}>
+                className={`px-4 py-2 rounded-lg text-sm transition-all ${activeTab === tab ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white font-medium" : "text-gray-500 hover:text-gray-300 hover:bg-gray-900"}`}>
                 {tab === "attractions" ? "Attractions" : "Dining"}
               </button>
             ))}
@@ -181,7 +172,7 @@ export default function DiscoverPage() {
                   }`}>
                     {selectedIds.has(card.id) && (
                       <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     )}
                   </div>
@@ -200,18 +191,15 @@ export default function DiscoverPage() {
                     <a href={card.referenceUrl} target="_blank" rel="noopener noreferrer"
                       onClick={e => e.stopPropagation()}
                       className="text-xs text-orange-400 hover:text-orange-300 transition-colors">
-                      Learn more →
+                      Learn more
                     </a>
                     
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(card.title + " " + card.location)}`}
+                      href={"https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(card.title + " " + card.location)}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={e => e.stopPropagation()}
-                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-green-400 transition-colors">
-                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-                      </svg>
-                      Maps
+                      className="text-xs text-gray-500 hover:text-green-400 transition-colors">
+                      📍 Maps
                     </a>
                   </div>
                 </div>
