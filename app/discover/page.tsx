@@ -1,6 +1,7 @@
 
 "use client";
 import { useEffect, useState } from "react";
+import FeedbackModal from "@/components/FeedbackModal";
 import { useRouter } from "next/navigation";
 
 type TripCard = {
@@ -93,6 +94,7 @@ export default function DiscoverPage() {
                 className="text-xs px-3 py-1.5 rounded-lg border border-gray-800 text-gray-400 hover:border-gray-600 hover:text-gray-200 transition-all">
                 Select All
               </button>
+              <FeedbackModal />
               <button onClick={() => setSelectedIds(new Set())}
                 className="text-xs px-3 py-1.5 rounded-lg border border-gray-800 text-gray-400 hover:border-gray-600 hover:text-gray-200 transition-all">
                 Clear

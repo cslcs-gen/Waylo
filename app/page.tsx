@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import FeedbackModal from "@/components/FeedbackModal";
 import { useRouter } from "next/navigation";
 
 const EXAMPLE_PROMPTS = [
@@ -178,6 +179,7 @@ export default function LandingPage() {
         <div className="flex items-center gap-6 text-sm text-gray-500">
           <a href="/itinerary" className="hover:text-gray-300 transition-colors">My Itinerary</a>
           <a href="/admin" className="hover:text-gray-300 transition-colors">Admin</a>
+          <FeedbackModal />
           <button onClick={handleShare}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
               shared
