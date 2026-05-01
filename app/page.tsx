@@ -164,13 +164,13 @@ export default function LandingPage() {
           <p className="text-white text-lg font-medium mb-2 min-h-7 transition-all duration-500">
             {LOADING_STEPS[loadingStep]?.message}
           </p>
-          <p className="text-gray-500 text-sm mb-8">This takes about 60–90 seconds. We are curating 140+ experiences just for you.</p>
+          <p className="text-gray-500 text-sm mb-8">This takes about 60–90 seconds. We are handpicking the best experiences specifically for you.</p>
           <div className="flex justify-center gap-1.5 flex-wrap mb-8">
             {LOADING_STEPS.map((_, i) => (
               <div key={i} className={`h-1 rounded-full transition-all duration-500 ${i <= loadingStep ? "bg-orange-400 w-7" : "bg-gray-800 w-3"}`} />
             ))}
           </div>
-          <p className="text-gray-700 text-xs">Personalising recommendations ✦ Sourcing photos ✦ Building your itinerary</p>
+          <p className="text-gray-700 text-xs">Understanding your taste ✦ Curating hidden gems ✦ Building your itinerary</p>
         </div>
       </div>
     );
@@ -279,7 +279,7 @@ export default function LandingPage() {
         </div>
 
         <div className="mt-10 flex flex-wrap gap-4 justify-center max-w-xl">
-          {["140+ experiences curated", "Day-by-day itinerary", "Export to PDF & Excel", "7 categories of experiences"].map((f) => (
+          {["60+ handpicked experiences", "Day-by-day itinerary", "Export to PDF & Excel", "7 categories of experiences"].map((f) => (
             <div key={f} className="flex items-center gap-1.5 text-xs text-gray-600">
               <div className="w-1 h-1 rounded-full bg-orange-500" />
               {f}
