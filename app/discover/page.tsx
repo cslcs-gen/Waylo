@@ -7,34 +7,58 @@ type TripCard = {
   id: string; title: string; category: string; type: string;
   imageUrl: string; location: string; duration: string;
   whyVisit: string; referenceUrl: string; priceRange?: string;
+  hiddenGem?: boolean;
 };
 
-const ATTRACTION_TABS = ["Casual", "Adventure", "Fun", "Culture"];
-const DINING_TABS = ["Fine Dining", "Street Food", "Cafes"];
-
-const CATEGORY_COLORS: Record<string, string> = {
-  Casual: "bg-green-500/10 text-green-400 border-green-500/20",
-  Adventure: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-  Fun: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-  Culture: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-  "Fine Dining": "bg-rose-500/10 text-rose-400 border-rose-500/20",
-  "Street Food": "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  Cafes: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+type Categories = {
+  experience: string[];
+  dining: string[];
 };
+
+const COLORS = [
+  "bg-orange-500/10 text-orange-400 border-orange-500/20",
+  "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  "bg-green-500/10 text-green-400 border-green-500/20",
+  "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  "bg-rose-500/10 text-rose-400 border-rose-500/20",
+  "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  "bg-teal-500/10 text-teal-400 border-teal-500/20",
+  "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+];
 
 export default function DiscoverPage() {
   const router = useRouter();
   const [trip, setTrip] = useState<Record<string, unknown> | null>(null);
   const [cards, setCards] = useState<TripCard[]>([]);
+  const [categories, setCategories] = useState<Categories>({ experience: [], dining: [] });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<"attractions" | "dining">("attractions");
-  const [activeSubTab, setActiveSubTab] = useState("Casual");
+  const [activeTab, setActiveTab] = useState<"experience" | "dining">("experience");
+  const [activeSubTab, setActiveSubTab] = useState("");
+  const [categoryColorMap, setCategoryColorMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const raw = sessionStorage.getItem("tripData");
     if (!raw) { router.replace("/"); return; }
-    const { trip, cards } = JSON.parse(raw);
-    setTrip(trip); setCards(cards);
+    const { trip, cards, categories } = JSON.parse(raw);
+    setTrip(trip);
+    setCards(cards);
+
+    const cats: Categories = categories || {
+      experience: [...new Set(cards.filter((c: TripCard) => c.type === "experience").map((c: TripCard) => c.category))],
+      dining: [...new Set(cards.filter((c: TripCard) => c.type === "dining").map((c: TripCard) => c.category))],
+    };
+    setCategories(cats);
+
+    // Assign colors to categories
+    const allCats = [...cats.experience, ...cats.dining];
+    const colorMap: Record<string, string> = {};
+    allCats.forEach((cat, i) => { colorMap[cat] = COLORS[i % COLORS.length]; });
+    setCategoryColorMap(colorMap);
+
+    // Set initial sub tab
+    if (cats.experience.length > 0) setActiveSubTab(cats.experience[0]);
+
+    // Track visit
     const sessionId = localStorage.getItem("wayloSessionId") || "";
     fetch("/api/track", {
       method: "POST",
@@ -62,10 +86,10 @@ export default function DiscoverPage() {
     });
   };
 
+  const currentSubTabs = activeTab === "experience" ? categories.experience : categories.dining;
+
   const visibleCards = cards.filter(c =>
-    activeTab === "attractions"
-      ? c.type === "attraction" && c.category === activeSubTab
-      : c.type === "dining" && c.category === activeSubTab
+    c.type === activeTab && c.category === activeSubTab
   );
 
   const goToItinerary = () => {
@@ -92,7 +116,7 @@ export default function DiscoverPage() {
 
       <div className="relative z-10 bg-gray-950/80 backdrop-blur border-b border-gray-800 sticky top-0">
         <div className="max-w-6xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-3">
               <a href="/" className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center shadow-lg shadow-orange-500/20 flex-shrink-0">
                 <span className="text-white font-bold text-sm">W</span>
@@ -102,10 +126,11 @@ export default function DiscoverPage() {
                 <p className="text-xs text-gray-500">
                   {String(trip.duration_days)} days
                   {trip.budget_usd ? ` · $${Number(trip.budget_usd).toLocaleString()} budget` : ""}
+                  {" · "}{cards.length} experiences
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-wrap justify-end">
+            <div className="flex items-center gap-2 flex-wrap">
               <button onClick={() => setSelectedIds(new Set(cards.map(c => c.id)))}
                 className="text-xs px-3 py-1.5 rounded-lg border border-gray-800 text-gray-400 hover:border-gray-600 hover:text-gray-200 transition-all">
                 Select All
@@ -124,19 +149,29 @@ export default function DiscoverPage() {
             </div>
           </div>
 
+          {/* Main tabs */}
           <div className="flex gap-1 mt-4">
-            {(["attractions", "dining"] as const).map(tab => (
-              <button key={tab} onClick={() => { setActiveTab(tab); setActiveSubTab(tab === "attractions" ? "Casual" : "Fine Dining"); }}
-                className={`px-4 py-2 rounded-lg text-sm transition-all ${activeTab === tab ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white font-medium" : "text-gray-500 hover:text-gray-300 hover:bg-gray-900"}`}>
-                {tab === "attractions" ? "Attractions" : "Dining"}
+            {(["experience", "dining"] as const).map(tab => (
+              <button key={tab} onClick={() => {
+                setActiveTab(tab);
+                const firstCat = tab === "experience" ? categories.experience[0] : categories.dining[0];
+                setActiveSubTab(firstCat || "");
+              }}
+                className={`px-4 py-2 rounded-lg text-sm transition-all capitalize ${activeTab === tab ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white font-medium" : "text-gray-500 hover:text-gray-300 hover:bg-gray-900"}`}>
+                {tab === "experience" ? "✦ Experiences" : "🍽 Dining"}
               </button>
             ))}
           </div>
 
+          {/* Dynamic sub tabs */}
           <div className="flex gap-1.5 mt-2 flex-wrap">
-            {(activeTab === "attractions" ? ATTRACTION_TABS : DINING_TABS).map(sub => (
+            {currentSubTabs.map(sub => (
               <button key={sub} onClick={() => setActiveSubTab(sub)}
-                className={`px-3 py-1 rounded-full text-xs transition-all border ${activeSubTab === sub ? "bg-gray-800 text-white border-gray-600" : "border-gray-800 text-gray-500 hover:border-gray-600 hover:text-gray-300"}`}>
+                className={`px-3 py-1 rounded-full text-xs transition-all border ${
+                  activeSubTab === sub
+                    ? "bg-gray-800 text-white border-gray-600"
+                    : "border-gray-800 text-gray-500 hover:border-gray-600 hover:text-gray-300"
+                }`}>
                 {sub}
               </button>
             ))}
@@ -148,7 +183,7 @@ export default function DiscoverPage() {
         {visibleCards.length === 0 ? (
           <div className="text-center py-20 text-gray-600">
             <p className="text-4xl mb-3">🔍</p>
-            <p>No recommendations in this category.</p>
+            <p>No recommendations in this category yet.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -161,10 +196,10 @@ export default function DiscoverPage() {
                 }`}>
                 <div className="relative h-44 bg-gray-800 overflow-hidden">
                   <img
-                    src={card.imageUrl || `https://picsum.photos/seed/${encodeURIComponent(card.id)}/400/176`}
+                    src={card.imageUrl || ("https://picsum.photos/seed/" + encodeURIComponent(card.id) + "/400/176")}
                     alt={card.title}
                     className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity group-hover:scale-105 duration-500"
-                    onError={(e) => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${encodeURIComponent(card.id)}/400/176`; }}
+                    onError={(e) => { (e.target as HTMLImageElement).src = "https://picsum.photos/seed/" + encodeURIComponent(card.id) + "/400/176"; }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent" />
                   <div className={`absolute top-3 right-3 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
@@ -176,15 +211,22 @@ export default function DiscoverPage() {
                       </svg>
                     )}
                   </div>
-                  <span className={`absolute bottom-2 left-2 text-xs font-medium px-2 py-0.5 rounded-full border ${CATEGORY_COLORS[card.category] ?? "bg-gray-800 text-gray-400 border-gray-700"}`}>
-                    {card.category}
-                  </span>
+                  <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
+                    <span className={"text-xs font-medium px-2 py-0.5 rounded-full border " + (categoryColorMap[card.category] ?? "bg-gray-800 text-gray-400 border-gray-700")}>
+                      {card.category}
+                    </span>
+                    {card.hiddenGem && (
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full border bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
+                        ✦ Hidden Gem
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="p-4">
                   <h3 className="font-semibold text-white text-sm mb-1 leading-snug">{card.title}</h3>
                   <p className="text-xs text-gray-500 mb-2">
                     📍 {card.location} · ⏱ {card.duration}
-                    {card.priceRange ? ` · ${card.priceRange}` : ""}
+                    {card.priceRange ? " · " + card.priceRange : ""}
                   </p>
                   <p className="text-xs text-gray-400 leading-relaxed mb-3">{card.whyVisit}</p>
                   <div className="flex items-center gap-3">
