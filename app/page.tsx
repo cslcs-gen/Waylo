@@ -12,15 +12,11 @@ const EXAMPLE_PROMPTS = [
 
 const LOADING_STEPS = [
   { message: "Understanding your travel style..." },
-  { message: "Discovering the best spots for you..." },
-  { message: "Curating Casual experiences..." },
-  { message: "Finding Adventure activities..." },
-  { message: "Exploring Culture highlights..." },
-  { message: "Hunting down the best Street Food..." },
-  { message: "Selecting Fine Dining gems..." },
-  { message: "Picking the cosiest Cafes..." },
-  { message: "Fetching beautiful photos..." },
-  { message: "Almost ready — putting it all together..." },
+  { message: "Creating your personalised categories..." },
+  { message: "Finding hidden gems just for you..." },
+  { message: "Curating experiences matching your interests..." },
+  { message: "Selecting the best dining spots..." },
+  { message: "Almost ready — your itinerary is coming..." },
 ];
 
 const DESTINATIONS = [
@@ -164,7 +160,7 @@ export default function LandingPage() {
           <p className="text-white text-lg font-medium mb-2 min-h-7 transition-all duration-500">
             {LOADING_STEPS[loadingStep]?.message}
           </p>
-          <p className="text-gray-500 text-sm mb-8">This takes about 60–90 seconds. We are handpicking the best experiences specifically for you.</p>
+          <p className="text-gray-500 text-sm mb-8">This takes about 20–30 seconds. We are handpicking experiences specifically for you.</p>
           <div className="flex justify-center gap-1.5 flex-wrap mb-8">
             {LOADING_STEPS.map((_, i) => (
               <div key={i} className={`h-1 rounded-full transition-all duration-500 ${i <= loadingStep ? "bg-orange-400 w-7" : "bg-gray-800 w-3"}`} />

@@ -1,6 +1,6 @@
 
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 type TripCard = {
@@ -10,10 +10,7 @@ type TripCard = {
   hiddenGem?: boolean;
 };
 
-type Categories = {
-  experience: string[];
-  dining: string[];
-};
+type Categories = { experience: string[]; dining: string[]; };
 
 const COLORS = [
   "bg-orange-500/10 text-orange-400 border-orange-500/20",
@@ -26,6 +23,20 @@ const COLORS = [
   "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
 ];
 
+function CardSkeleton() {
+  return (
+    <div className="bg-gray-900 rounded-2xl overflow-hidden border border-gray-800">
+      <div className="h-44 bg-gray-800 animate-pulse" />
+      <div className="p-4">
+        <div className="h-4 bg-gray-800 rounded animate-pulse mb-2 w-3/4" />
+        <div className="h-3 bg-gray-800 rounded animate-pulse mb-3 w-1/2" />
+        <div className="h-3 bg-gray-800 rounded animate-pulse mb-1 w-full" />
+        <div className="h-3 bg-gray-800 rounded animate-pulse w-2/3" />
+      </div>
+    </div>
+  );
+}
+
 export default function DiscoverPage() {
   const router = useRouter();
   const [trip, setTrip] = useState<Record<string, unknown> | null>(null);
@@ -35,6 +46,35 @@ export default function DiscoverPage() {
   const [activeTab, setActiveTab] = useState<"experience" | "dining">("experience");
   const [activeSubTab, setActiveSubTab] = useState("");
   const [categoryColorMap, setCategoryColorMap] = useState<Record<string, string>>({});
+  const [imagesLoading, setImagesLoading] = useState(true);
+  const [imageProgress, setImageProgress] = useState(0);
+
+  const enrichImages = useCallback(async (cards: TripCard[], destination: string) => {
+    setImagesLoading(true);
+    setImageProgress(0);
+    try {
+      const res = await fetch("/api/enrich-images", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cards, destination }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const imageMap: Record<string, string> = {};
+      for (const item of (data.images || [])) {
+        imageMap[item.id] = item.imageUrl;
+      }
+      setCards(prev => prev.map(card => ({
+        ...card,
+        imageUrl: imageMap[card.id] || card.imageUrl || ""
+      })));
+      setImageProgress(100);
+    } catch {
+      console.error("Image enrichment failed");
+    } finally {
+      setImagesLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const raw = sessionStorage.getItem("tripData");
@@ -49,13 +89,10 @@ export default function DiscoverPage() {
     };
     setCategories(cats);
 
-    // Assign colors to categories
     const allCats = [...cats.experience, ...cats.dining];
     const colorMap: Record<string, string> = {};
     allCats.forEach((cat, i) => { colorMap[cat] = COLORS[i % COLORS.length]; });
     setCategoryColorMap(colorMap);
-
-    // Set initial sub tab
     if (cats.experience.length > 0) setActiveSubTab(cats.experience[0]);
 
     // Track visit
@@ -65,18 +102,19 @@ export default function DiscoverPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "visit", sessionId, page: "/discover", referrer: document.referrer }),
     }).catch(() => {});
-    if (trip) {
-      fetch("/api/track", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "search", sessionId, rawQuery: "",
-          destination: trip.destination, durationDays: trip.duration_days,
-          budgetUsd: trip.budget_usd, travelStyle: trip.travel_style,
-        }),
-      }).catch(() => {});
-    }
-  }, [router]);
+
+    // Start image enrichment in background immediately
+    enrichImages(cards, trip.destination);
+  }, [router, enrichImages]);
+
+  // Update image progress periodically while loading
+  useEffect(() => {
+    if (!imagesLoading) return;
+    const interval = setInterval(() => {
+      setImageProgress(prev => Math.min(90, prev + 5));
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [imagesLoading]);
 
   const toggleCard = (id: string) => {
     setSelectedIds(prev => {
@@ -87,10 +125,7 @@ export default function DiscoverPage() {
   };
 
   const currentSubTabs = activeTab === "experience" ? categories.experience : categories.dining;
-
-  const visibleCards = cards.filter(c =>
-    c.type === activeTab && c.category === activeSubTab
-  );
+  const visibleCards = cards.filter(c => c.type === activeTab && c.category === activeSubTab);
 
   const goToItinerary = () => {
     const selected = cards.filter(c => selectedIds.has(c.id));
@@ -100,10 +135,7 @@ export default function DiscoverPage() {
 
   if (!trip) return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-8 h-8 border-2 border-gray-700 border-t-orange-400 rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-gray-500 text-sm">Loading...</p>
-      </div>
+      <div className="w-8 h-8 border-2 border-gray-700 border-t-orange-400 rounded-full animate-spin mx-auto" />
     </div>
   );
 
@@ -125,7 +157,7 @@ export default function DiscoverPage() {
                 <h1 className="text-base font-semibold text-white">{String(trip.destination)}</h1>
                 <p className="text-xs text-gray-500">
                   {String(trip.duration_days)} days
-                  {trip.budget_usd ? ` · $${Number(trip.budget_usd).toLocaleString()} budget` : ""}
+                  {trip.budget_usd ? " · $" + Number(trip.budget_usd).toLocaleString() + " budget" : ""}
                   {" · "}{cards.length} experiences
                 </p>
               </div>
@@ -149,7 +181,6 @@ export default function DiscoverPage() {
             </div>
           </div>
 
-          {/* Main tabs */}
           <div className="flex gap-1 mt-4">
             {(["experience", "dining"] as const).map(tab => (
               <button key={tab} onClick={() => {
@@ -157,54 +188,70 @@ export default function DiscoverPage() {
                 const firstCat = tab === "experience" ? categories.experience[0] : categories.dining[0];
                 setActiveSubTab(firstCat || "");
               }}
-                className={`px-4 py-2 rounded-lg text-sm transition-all capitalize ${activeTab === tab ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white font-medium" : "text-gray-500 hover:text-gray-300 hover:bg-gray-900"}`}>
+                className={"px-4 py-2 rounded-lg text-sm transition-all " + (activeTab === tab ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white font-medium" : "text-gray-500 hover:text-gray-300 hover:bg-gray-900")}>
                 {tab === "experience" ? "✦ Experiences" : "🍽 Dining"}
               </button>
             ))}
           </div>
 
-          {/* Dynamic sub tabs */}
           <div className="flex gap-1.5 mt-2 flex-wrap">
             {currentSubTabs.map(sub => (
               <button key={sub} onClick={() => setActiveSubTab(sub)}
-                className={`px-3 py-1 rounded-full text-xs transition-all border ${
-                  activeSubTab === sub
-                    ? "bg-gray-800 text-white border-gray-600"
-                    : "border-gray-800 text-gray-500 hover:border-gray-600 hover:text-gray-300"
-                }`}>
+                className={"px-3 py-1 rounded-full text-xs transition-all border " + (activeSubTab === sub ? "bg-gray-800 text-white border-gray-600" : "border-gray-800 text-gray-500 hover:border-gray-600 hover:text-gray-300")}>
                 {sub}
               </button>
             ))}
           </div>
         </div>
+
+        {/* Image loading progress bar */}
+        {imagesLoading && (
+          <div className="h-0.5 bg-gray-800">
+            <div
+              className="h-full bg-gradient-to-r from-orange-500 to-rose-500 transition-all duration-1000"
+              style={{ width: imageProgress + "%" }}
+            />
+          </div>
+        )}
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 py-8">
+        {/* Image loading notice */}
+        {imagesLoading && (
+          <div className="flex items-center gap-2 mb-4 text-xs text-gray-600">
+            <div className="w-3 h-3 border border-gray-700 border-t-orange-400 rounded-full animate-spin" />
+            Fetching photos in the background...
+          </div>
+        )}
+
         {visibleCards.length === 0 ? (
-          <div className="text-center py-20 text-gray-600">
-            <p className="text-4xl mb-3">🔍</p>
-            <p>No recommendations in this category yet.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[1,2,3].map(i => <CardSkeleton key={i} />)}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {visibleCards.map(card => (
               <div key={card.id} onClick={() => toggleCard(card.id)}
-                className={`group relative bg-gray-900 rounded-2xl overflow-hidden border transition-all duration-200 cursor-pointer ${
-                  selectedIds.has(card.id)
-                    ? "border-orange-500/60 shadow-xl shadow-orange-500/10"
-                    : "border-gray-800 hover:border-gray-700 hover:shadow-xl hover:shadow-black/20"
-                }`}>
+                className={"group relative bg-gray-900 rounded-2xl overflow-hidden border transition-all duration-200 cursor-pointer " + (selectedIds.has(card.id) ? "border-orange-500/60 shadow-xl shadow-orange-500/10" : "border-gray-800 hover:border-gray-700 hover:shadow-xl hover:shadow-black/20")}>
                 <div className="relative h-44 bg-gray-800 overflow-hidden">
-                  <img
-                    src={card.imageUrl || ("https://picsum.photos/seed/" + encodeURIComponent(card.id) + "/400/176")}
-                    alt={card.title}
-                    className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity group-hover:scale-105 duration-500"
-                    onError={(e) => { (e.target as HTMLImageElement).src = "https://picsum.photos/seed/" + encodeURIComponent(card.id) + "/400/176"; }}
-                  />
+                  {card.imageUrl ? (
+                    <img
+                      src={card.imageUrl}
+                      alt={card.title}
+                      className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-all duration-700 group-hover:scale-105"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                      {imagesLoading ? (
+                        <div className="w-5 h-5 border border-gray-700 border-t-orange-400 rounded-full animate-spin" />
+                      ) : (
+                        <span className="text-3xl">{card.type === "dining" ? "🍽" : "✦"}</span>
+                      )}
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent" />
-                  <div className={`absolute top-3 right-3 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                    selectedIds.has(card.id) ? "bg-orange-500 border-orange-500" : "bg-gray-900/60 border-gray-600 group-hover:border-gray-400"
-                  }`}>
+                  <div className={"absolute top-3 right-3 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all " + (selectedIds.has(card.id) ? "bg-orange-500 border-orange-500" : "bg-gray-900/60 border-gray-600 group-hover:border-gray-400")}>
                     {selectedIds.has(card.id) && (
                       <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
