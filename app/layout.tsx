@@ -16,10 +16,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://waylo-seven.vercel.app"),
   title: "Waylo — AI Travel Itinerary Planner",
-  description: "Describe your dream trip in plain English. Waylo curates 140+ personalised experiences and builds your perfect day-by-day itinerary powered by AI.",
+  description: "Describe your dream trip in plain English. Waylo handpicks personalised experiences and builds your perfect day-by-day itinerary powered by AI.",
   openGraph: {
     title: "Waylo — AI Travel Itinerary Planner",
-    description: "Describe your dream trip in plain English. Waylo curates 140+ personalised experiences and builds your perfect day-by-day itinerary powered by AI.",
+    description: "Describe your dream trip in plain English. Waylo handpicks personalised experiences and builds your perfect day-by-day itinerary powered by AI.",
     url: "https://waylo-seven.vercel.app",
     siteName: "Waylo",
     images: [
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Waylo — AI Travel Itinerary Planner",
-    description: "Describe your dream trip in plain English. Waylo plans your perfect itinerary with AI.",
+    description: "Describe your dream trip in plain English. Waylo plans your perfect personalised itinerary with AI.",
     images: ["/og-image.png"],
   },
 };
